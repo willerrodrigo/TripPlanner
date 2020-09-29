@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, AsyncStorage,
+  View, TextInput, TouchableOpacity, Text, AsyncStorage,
 } from 'react-native';
-
+import * as yup from 'yup';
+import { Formik } from 'formik';
 import styles from './styles';
 
 const AddTripSreen = (props) => {
-  const [pointName, setPointName] = useState('');
-
-  const handleSave = async () => {
+  const handleSave = async (values) => {
     const trip = {
       id: new Date().getTime(),
-      trip: pointName,
+      trip: values.name,
       price: 0,
       longitude: -46.625290,
       latitude: -23.533773,
@@ -29,13 +28,32 @@ const AddTripSreen = (props) => {
     props.navigation.goBack();
   };
 
+  const schema = yup.object().shape({
+    name: yup.mixed()
+      .required('Preencha o campo do nome'),
+  });
+
   return (
-    <View style={styles.container}>
-      <TextInput style={styles.input} placeholder="Nome da viagem" onChangeText={setPointName} />
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text>Salvar</Text>
-      </TouchableOpacity>
-    </View>
+    <Formik
+      initialValues={{ name: '' }}
+      onSubmit={values => handleSave(values)}
+      validationSchema={schema}
+    >
+      {props => (
+        <View style={styles.container}>
+          <TextInput
+            value={props.values.name}
+            style={styles.input}
+            placeholder="Nome da viagem"
+            onChangeText={text => props.setFieldValue('name', text)}
+          />
+          { props.errors.name && <Text style={{ color: 'red' }}>{props.errors.name}</Text> }
+          <TouchableOpacity style={styles.saveButton} onPress={props.handleSubmit}>
+            <Text>Salvar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </Formik>
   );
 };
 

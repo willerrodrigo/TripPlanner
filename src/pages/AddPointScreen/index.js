@@ -4,7 +4,8 @@ import {
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-
+import { Formik } from 'formik';
+import * as yup from 'yup';
 import arrowLeft from '~/assets/images/arrow-left-white.png';
 import styles from './styles';
 
@@ -13,19 +14,17 @@ const AddPointScreen = (props) => {
     longitude: -122.4324,
     latitude: 37.78825,
   });
-  const [pointName, setPointName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState(0);
 
-  const handleSave = async () => {
+  const handleSave = async ({ name, description, price }) => {
     const id = new Date().getTime();
+    const priceConverted = parseFloat(price);
     const pointAS = await AsyncStorage.getItem(`trip-${props.navigation.state.params.id}`);
     let points = [];
     if (pointAS) {
       points = JSON.parse(pointAS);
     }
     points.push({
-      position, pointName, description, price, id,
+      position, name, description, price: priceConverted, id,
     });
     await AsyncStorage.setItem(`trip-${props.navigation.state.params.id}`, JSON.stringify(points));
 
@@ -52,6 +51,15 @@ const AddPointScreen = (props) => {
     props.navigation.state.params.refreshTrips();
     props.navigation.goBack();
   };
+
+  const schema = yup.object().shape({
+    name: yup.mixed()
+      .required('Preencha o campo do nome'),
+    description: yup.mixed(),
+    price: yup.number()
+      .required('Preencha o campo de preço')
+      .typeError('Preencha apenas com números'),
+  });
 
   return (
     <KeyboardAwareScrollView
@@ -88,12 +96,45 @@ const AddPointScreen = (props) => {
             </TouchableOpacity>
           </View>
         </View>
-        <TextInput style={styles.input} placeholder="Nome do ponto" onChangeText={setPointName} />
-        <TextInput style={styles.input} placeholder="Descrição" onChangeText={setDescription} />
-        <TextInput style={styles.input} placeholder="Preço" onChangeText={value => setPrice(parseFloat(value))} />
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text>Salvar</Text>
-        </TouchableOpacity>
+        <Formik
+          initialValues={{ name: '', description: '', price: '' }}
+          onSubmit={values => handleSave(values)}
+          validationSchema={schema}
+        >
+          {props => (
+            <View>
+              <TextInput
+                style={styles.input}
+                placeholder="Nome do ponto"
+                onChangeText={props.handleChange('name')}
+                value={props.values.name}
+              />
+              {props.touched.name && props.errors.name && <Text style={{ color: 'red' }}>{props.errors.name}</Text> }
+              <TextInput
+                style={styles.input}
+                placeholder="Descrição"
+                onChangeText={props.handleChange('description')}
+                value={props.values.description}
+              />
+              {props.touched.description && props.errors.description && <Text style={{ color: 'red' }}>{props.errors.description}</Text> }
+              <TextInput
+                style={styles.input}
+                placeholder="Preço"
+                // onChangeText={value => setPrice(parseFloat(value))}
+                onChangeText={props.handleChange('price')}
+                // value={`${props.values.price}`}
+                // keyboardType="numeric"
+              />
+              {props.touched.price && props.errors.price && <Text style={{ color: 'red' }}>{props.errors.price}</Text> }
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={props.handleSubmit}
+              >
+                <Text>Salvar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Formik>
       </View>
     </KeyboardAwareScrollView>
   );
